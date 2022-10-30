@@ -1,5 +1,6 @@
 # `ipfs-tool update`
 1. ipfs cat $listCID > localList
+2. show diff
 
 # `ipfs-tool upgrade`
 1. for i in localList
