@@ -2,11 +2,12 @@
 #
 # exit code
 # 1: arg miss
+# 2: unknown error when execute ipfs command
 
 # utils
 
 getListIPNS(){
-	echo '/ipns/k51qzi5uqu5dimnxanwi9mp3gwip087mf8b6xkg4lw6r8dwndy5les50ydqe9m'
+	echo 'k51qzi5uqu5dimnxanwi9mp3gwip087mf8b6xkg4lw6r8dwndy5les50ydqe9m'
 }
 
 getConfigDir(){
@@ -15,7 +16,7 @@ getConfigDir(){
 
 # subcommands
 update(){
-	ipfs cat $(getListIPNS) > $(getConfigDir)/list
+	ipfs cat /ipns/$(getListIPNS) > $(getConfigDir)/list
 	# show diff
 }
 
@@ -37,7 +38,29 @@ get(){
 }
 
 upload(){
-	echo upload
+	if [[ -z $1 ]]; then
+		echo 'ipfs upload <file> [file path]'
+		exit 1
+	fi
+	file=$1
+	filepath=${2:-$file}
+	cid=$(ipfs add -Q $file)
+
+	if grep $(getConfigDir)/list -e $filepath 2>&1 > /dev/null; then
+		# found
+		sed -i "s/$filepath .*/$filepath $cid/" $(getConfigDir)/list
+	else
+		# not found
+		echo $filepath $cid >> $(getConfigDir)/list
+	fi
+
+	listCid=$(ipfs add -Q $(getConfigDir)/list)
+	if ipfs name publish --key=$(getListIPNS) /ipfs/$listCid 2>&1 > /dev/null; then
+		echo finish
+	else
+		echo error
+		exit 2
+	fi
 }
 
 help(){
@@ -75,7 +98,7 @@ case $1 in
 		get $2
 		;;
 	upload)
-		upload
+		upload $2 $3
 		;;
 	help|-h|--help|*)
 		help
