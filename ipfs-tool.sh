@@ -7,7 +7,11 @@
 # utils
 
 getListIPNS(){
-	echo 'k51qzi5uqu5dimnxanwi9mp3gwip087mf8b6xkg4lw6r8dwndy5les50ydqe9m'
+	if [[ -f "$(getConfigDir)/ipns" ]]; then 
+		cat $(getConfigDir)/ipns
+	else
+		echo '/ipns/k51qzi5uqu5dimnxanwi9mp3gwip087mf8b6xkg4lw6r8dwndy5les50ydqe9m'
+	fi
 }
 
 getConfigDir(){
@@ -15,17 +19,21 @@ getConfigDir(){
 }
 
 # subcommands
-update(){
-	ipfs cat /ipns/$(getListIPNS) > $(getConfigDir)/list
+add(){
+	ipfs cat $(getListIPNS) > $(getConfigDir)/list
 	# show diff
 }
 
 upgrade(){
-	echo upgrade
+	echo this subcmd is not finished
 }
 
 list(){
-	cat $(getConfigDir)/list
+	if [[ -z $1 ]]; then
+		cat $(getConfigDir)/list
+	else
+		grep $(getConfigDir)/list -e "$1" | cut -d' ' -f2
+	fi
 }
 
 get(){
@@ -63,6 +71,10 @@ upload(){
 	fi
 }
 
+ipns(){
+	ipfs name publish $(echo | ipfs add -Q) | cut -d' ' -f3 | cut -d: -f1
+}
+
 help(){
 	echo "A cli tool to simplify ipfs"
 	echo 
@@ -73,32 +85,41 @@ help(){
 	echo "    --help  -h  print this"
 	echo 
 	echo "sumcmds:"
-	echo "    update                      update list"
+	echo "    add                         add list"
 	echo "    upgrade                     upgrade all files"
 	echo "    ls                          cat list"
 	echo "    get <file path>             download specific file to cwd"
 	echo "    upload <file> [file path]   upload file to ipfs"
 	echo "    help                        print this"
+	echo "    ipns                        get ipns publish key(only for admin)"
+	echo 
+	echo "exit code:"
+	echo "    0: no error"
+	echo "    1: arguments missed"
+	echo "    2: unknown error when execute ipfs command"
 }
 
 # init
 mkdir -p $(getConfigDir)
 
 case $1 in
-	update)
-		update
+	add)
+		add
 		;;
 	upgrade)
 		upgrade
 		;;
 	ls)
-		list
+		list $2
 		;;
 	get)
 		get $2
 		;;
 	upload)
 		upload $2 $3
+		;;
+	ipns)
+		ipns
 		;;
 	help|-h|--help|*)
 		help
